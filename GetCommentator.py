@@ -47,6 +47,11 @@ def StartCon():
 			ConvertAudio('audio/'+filenames, x)
 			x += 1
 
+			
+def findKeyWord(file):
+	if 'drive' in open(file).read():
+		print("true")
+
 StartCon()
 
 # for filenames in os.listdir(dire):
