@@ -1,16 +1,34 @@
 import speech_recognition as sr
 import os
 
-dire = 'audio'
+# def findSpeech():
+
+# 	for file in os.listdir('audio'):
+# 		ConvertAudio(file,)
+
 
 def ConvertAudio(audio, x):
+
+	with open("api-key.json") as f:
+		GOOGLE_CLOUD_SPEECH_CREDENTIALS = f.read()
+
+	#Add a path to the audio files
+	APP_ROOT = os.path.dirname(os.path.abspath(__file__))
+
+	target = os.path.join(APP_ROOT, 'text/')
+
+	if not os.path.isdir(target):
+		os.mkdir(target)
+
 	r = sr.Recognizer()
 
 	with sr.AudioFile(audio) as source :
+		r.adjust_for_ambient_noise(source)
 		audio = r.record(source)
 
 	try:
-		text = r.recognize_google(audio)
+		#print("Mama mia")
+		text = r.recognize_google_cloud(audio, credentials_json = GOOGLE_CLOUD_SPEECH_CREDENTIALS)
 
 		file = open("text/speeches_" + str(x) + ".txt", "w+")
 
@@ -18,49 +36,21 @@ def ConvertAudio(audio, x):
 
 		file.close()
 
-		print("worked")
-
-		data = open("text/speeches_" + str(x) + ".txt", 'r').read()
-
-		wordcount = len(data.split())
-
-		print(wordcount)
-
-		#return(text)
-
 	except Exception as e:
 		print(e)
 
-# for x in range(3):
-# 	ConvertAudio('audio/audio_output_' + str(x + 10) + '.wav')
-
-
-
-#ConvertAudio('audio/audio_output_20.wav', 0)
+#ConvertAudio("audio_output_0.wav", 0)
 
 def StartCon():
 	x = 0
+
+	wordcount = []
+	#word_detect = []
 	
 	for filenames in os.listdir('audio'):
+		#print(filenames)
 		if filenames.endswith(".wav"):
 			#print(filenames)
-			ConvertAudio('audio/'+filenames, x)
-			x += 1
+			ConvertAudio('audio/' + filenames, x)
+			x+=1
 
-			
-def findKeyWord(file):
-	if 'drive' in open(file).read():
-		print("true")
-
-StartCon()
-
-# for filenames in os.listdir(dire):
-# 	print(filenames)
-
-# 	#add_clips()
-
-# 	ConvertAudio(dire + '/' + filenames, x)
-
-
-
-	#print("\n")
