@@ -3,14 +3,14 @@ import os
 import subprocess
 import re
 from subprocess import Popen, PIPE
-import Split, FindVolume, FindBrightness, Rejoin
+import Split, FindVolume, FindBrightness, Rejoin, FindPitch, GetCommentator, ob, motion, getAudioFiles
 import matplotlib.pyplot as plt
+import analysis
+from pandas import DataFrame
+from multiprocessing.dummy import Pool
 
 
-
-#Initialise array with volume levels and brightness levels
-vol_arr = []
-bright_values = []
+pool = Pool(8)
 
 def find_time(video) :
 	#This will call a command that will find the duration of the video
@@ -19,14 +19,14 @@ def find_time(video) :
 	proc=subprocess.Popen(command_time, shell=True, stdout=subprocess.PIPE, )
 	#This will return the output of the command (the duration) but will return it as a byte object
 	x=proc.communicate()[0]
-	print(type(x))
+	#print(type(x))
 	#This will change the byte object to a string
 	a = "".join(map(chr, x))
-	print(type(a))
+	#print(type(a))
 	#This will remove uncessary remains from the byte oject and return the time in seconds as an integer
 	x = int(re.search(r'\d+', a).group())
-	print(type(x))
-	print("Time is  " + str(x))
+	#print(type(x))
+	#print("Time is  " + str(x))
 	return x
 
 def extract_audio(video, x):
@@ -41,8 +41,17 @@ def extract_audio(video, x):
 
 	audio_command = "ffmpeg -i " + video +" -vn "+ target +"/audio_output_"+str(x)+".wav"
 	subprocess.call(audio_command,shell=True)
-	vol = FindVolume.find_volume(target+'/audio_output_'+str(x)+'.wav')
-	vol_arr.append(vol)
+
+def nextSplit():
+	getAudioFiles.getAudio()
+	Split.splitFrames()	
+
+
+def splitVideo(video, x, i):
+	#print("Calls")
+	command = "ffmpeg -i " + video + " -vcodec copy -acodec copy -ss " +  str(i) +  " -t 00:00:10 visual/video_output_" + str(x) +".mp4"
+	subprocess.call(command,shell=True)
+
 
 def split_video(video) :
 
@@ -59,37 +68,29 @@ def split_video(video) :
 
 	time = find_time(video)
 
-	num_seg = int(time/10)
+	#For 10 seconds
+	#num_seg = int(time/10)
+	#For 5 seconds
+	num_seg = int(time/5)
 
 	for x in range(0, num_seg-1) :
+		pool.apply_async(splitVideo, (video, x, i))
+		#For 10 seconds
+		#i = i + 10
+		#For 5 seconds
+		i = i + 5
 
-		command = "ffmpeg -i " + video + " -vcodec copy -acodec copy -ss " +  str(i) +  " -t 00:00:10 " + target + "/video_output_" + str(x) +".mp4"
-		subprocess.call(command,shell=True)
-		
+	pool.close()
+	pool.join()
 
-		extract_audio('visual/video_output_'+str(x)+'.mp4', x)
-		Split.GetFrames('visual/video_output_'+str(x)+'.mp4', x)
-		i = i + 10
-		#print(i)
+	nextSplit()
 
-	bright_values = list(FindBrightness.find_brightness())
+	#getAudioFiles.getAudio()
+	#Split.splitFrames()
 
 
-	plt.plot(vol_arr)
-	plt.plot(bright_values)
-	plt.legend(["Volume level", "Brightness level"], loc='upper left')
-	plt.ylabel("Brightness level")
-	plt.xlabel("10 second increments")
-	plt.show()
+	#analysis.startAnalysis()
 
-	#Rejoin clips
 
-	Rejoin.Rejoin(vol_arr, bright_values)
-	
-	#Clear elements from array
-	vol_arr.clear()
-	bright_values.clear()
 
-#find_time('output.mp4')
-#split_video('test.mp4')
-#print(vol_arr)
+split_video("footballtest.mp4")
